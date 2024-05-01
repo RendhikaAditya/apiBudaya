@@ -6,57 +6,87 @@ header('Access-Control-Allow-Headers: Content-Type');
 header('Access-Control-Allow-Origin: *');
 
 
-// Fungsi Create (Tambah Data)
-function tambahDataSejarawan($data) {
+// Fungsi tambah data sejarawan
+    function tambahDataSejarawan($data) {
+        global $koneksi;
+
+        $nama_sejarawan = $data['nama_sejarawan'];
+        $foto_sejarawan = uploadFoto($data['foto_sejarawan']);
+        $tanggal_lahir = $data['tanggal_lahir'];
+        $asal = $data['asal'];
+        $jenis_kelamin = $data['jenis_kelamin'];
+        $deskripsi = $data['deskripsi'];
+
+        $query = "INSERT INTO sejarawan (nama_sejarawan, foto_sejarawan, tanggal_lahir, asal, jenis_kelamin, deskripsi) VALUES ('$nama_sejarawan', '$foto_sejarawan', '$tanggal_lahir', '$asal', '$jenis_kelamin', '$deskripsi')";
+
+        if(mysqli_query($koneksi, $query)) {
+            $response = [
+                'sukses' => true,
+                'status' => 200,
+                'pesan' => 'Data sejarawan berhasil ditambahkan'
+            ];
+        } else {
+            $response = [
+                'sukses' => false,
+                'status' => 500,
+                'pesan' => 'Gagal menambahkan data sejarawan: ' . mysqli_error($koneksi)
+            ];
+        }
+
+        return json_encode($response);
+    }
+
+    // Fungsi upload foto
+    function uploadFoto($foto) {
+        $target_dir = "/gambar/";
+        $target_file = $target_dir . basename($foto["name"]);
+        $uploadOk = 1;
+        $imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
+        
+        // Check if image file is a actual image or fake image
+        $check = getimagesize($foto["tmp_name"]);
+        if($check !== false) {
+            $uploadOk = 1;
+        } else {
+            $uploadOk = 0;
+        }
+        
+        // Check if file already exists
+        if (file_exists($target_file)) {
+            $uploadOk = 0;
+        }
+        
+        // Check file size
+        if ($foto["size"] > 500000) {
+            $uploadOk = 0;
+        }
+        
+        // Allow certain file formats
+        if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg"
+        && $imageFileType != "gif" ) {
+            $uploadOk = 0;
+        }
+        
+        // Check if $uploadOk is set to 0 by an error
+        if ($uploadOk == 0) {
+            return null;
+        // if everything is ok, try to upload file
+        } else {
+            if (move_uploaded_file($foto["tmp_name"], $_SERVER['DOCUMENT_ROOT'] . $target_file)) {
+                return $target_file;
+            } else {
+                return null;
+            }
+        }
+    }
+
+
+// Fungsi update data sejarawan
+function updateDataSejarawan($id, $data) {
     global $koneksi;
 
     $nama_sejarawan = $data['nama_sejarawan'];
-    $foto_sejarawan = $data['foto_sejarawan'];
-    $tanggal_lahir = $data['tanggal_lahir'];
-    $asal = $data['asal'];
-    $jenis_kelamin = $data['jenis_kelamin'];
-    $deskripsi = $data['deskripsi'];
-
-    $query = "INSERT INTO sejarawan (nama_sejarawan, foto_sejarawan, tanggal_lahir, asal, jenis_kelamin, deskripsi) VALUES ('$nama_sejarawan', '$foto_sejarawan', '$tanggal_lahir', '$asal', '$jenis_kelamin', '$deskripsi')";
-
-    if(mysqli_query($koneksi, $query)) {
-        $response = [
-            'sukses' => true,
-            'status' => 200,
-            'pesan' => 'Data sejarawan berhasil ditambahkan'
-        ];
-    } else {
-        $response = [
-            'sukses' => false,
-            'status' => 500,
-            'pesan' => 'Gagal menambahkan data sejarawan: ' . mysqli_error($koneksi)
-        ];
-    }
-
-    return json_encode($response);
-}
-
-// Fungsi Read (Ambil Data)
-function ambilData() {
-    global $koneksi;
-
-    $query = "SELECT * FROM sejarawan";
-    $result = mysqli_query($koneksi, $query);
-
-    $data = array();
-    while($row = mysqli_fetch_assoc($result)) {
-        $data[] = $row;
-    }
-
-    return json_encode($data);
-}
-
-// Fungsi Update (Edit Data)
-function editData($id, $data) {
-    global $koneksi;
-
-    $nama_sejarawan = $data['nama_sejarawan'];
-    $foto_sejarawan = $data['foto_sejarawan'];
+    $foto_sejarawan = uploadFoto($data['foto_sejarawan']);
     $tanggal_lahir = $data['tanggal_lahir'];
     $asal = $data['asal'];
     $jenis_kelamin = $data['jenis_kelamin'];
@@ -81,8 +111,8 @@ function editData($id, $data) {
     return json_encode($response);
 }
 
-// Fungsi Delete (Hapus Data)
-function hapusData($id) {
+// Fungsi delete data sejarawan
+function hapusDataSejarawan($id) {
     global $koneksi;
 
     $query = "DELETE FROM sejarawan WHERE id=$id";
@@ -103,6 +133,7 @@ function hapusData($id) {
 
     return json_encode($response);
 }
+
 
 
 // Main Program

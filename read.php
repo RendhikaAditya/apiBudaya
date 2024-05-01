@@ -23,7 +23,7 @@ function bacaDataKebudayaan() {
 // Fungsi untuk membaca data dari tabel pegawai
 function bacaDataSejarawan() {
     global $koneksi;
-    $sql = "SELECT * FROM tb_sejarawan";
+    $sql = "SELECT * FROM sejarawan";
     $result = mysqli_query($koneksi, $sql);
     $data = array();
     if (mysqli_num_rows($result) > 0) {

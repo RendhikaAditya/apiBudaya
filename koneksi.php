@@ -3,7 +3,7 @@
 $host = "localhost"; // Lokasi database (biasanya localhost)
 $username = "root"; // Username database
 $password = ""; // Password database (kosongkan jika tidak ada)
-$database = "db_budaya"; // Nama database
+$database = "kebudayaan"; // Nama database
 
 // Membuat koneksi
 $koneksi = new mysqli($host, $username, $password, $database);

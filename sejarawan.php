@@ -5,19 +5,36 @@ header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
 header('Access-Control-Allow-Headers: Content-Type');
 header('Access-Control-Allow-Origin: *');
 
+function generateRandomFileName($prefix = '', $suffix = '') {
+    // Generate unique ID
+    $uniqueId = uniqid();
+
+    // Menggunakan md5 untuk membuat hash dari unique ID
+    $randomHash = md5($uniqueId);
+
+    // Menggabungkan prefix, hash acak, dan akhiran file jika diperlukan
+    $randomFileName = $prefix . $randomHash . $suffix;
+
+    return $randomFileName;
+}
 
 // Fungsi tambah data sejarawan
     function tambahDataSejarawan($data) {
         global $koneksi;
 
         $nama_sejarawan = $data['nama_sejarawan'];
-        $foto_sejarawan = uploadFoto($data['foto_sejarawan']);
+        $foto_sejarawan = $data['foto_sejarawan'];
         $tanggal_lahir = $data['tanggal_lahir'];
         $asal = $data['asal'];
         $jenis_kelamin = $data['jenis_kelamin'];
         $deskripsi = $data['deskripsi'];
 
-        $query = "INSERT INTO sejarawan (nama_sejarawan, foto_sejarawan, tanggal_lahir, asal, jenis_kelamin, deskripsi) VALUES ('$nama_sejarawan', '$foto_sejarawan', '$tanggal_lahir', '$asal', '$jenis_kelamin', '$deskripsi')";
+        $outputfile = "gambar/".generateRandomFileName('foto_', '.jpg') ;
+        $filehandler = fopen($outputfile, 'wb' ); 
+        fwrite($filehandler, base64_decode($foto_sejarawan));
+        fclose($filehandler); 
+
+        $query = "INSERT INTO sejarawan (nama_sejarawan, foto_sejarawan, tanggal_lahir, asal, jenis_kelamin, deskripsi) VALUES ('$nama_sejarawan', '$outputfile', '$tanggal_lahir', '$asal', '$jenis_kelamin', '$deskripsi')";
 
         if(mysqli_query($koneksi, $query)) {
             $response = [
@@ -36,80 +53,57 @@ header('Access-Control-Allow-Origin: *');
         return json_encode($response);
     }
 
-    // Fungsi upload foto
-    function uploadFoto($foto) {
-        $target_dir = "/gambar/";
-        $target_file = $target_dir . basename($foto["name"]);
-        $uploadOk = 1;
-        $imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
-        
-        // Check if image file is a actual image or fake image
-        $check = getimagesize($foto["tmp_name"]);
-        if($check !== false) {
-            $uploadOk = 1;
-        } else {
-            $uploadOk = 0;
-        }
-        
-        // Check if file already exists
-        if (file_exists($target_file)) {
-            $uploadOk = 0;
-        }
-        
-        // Check file size
-        if ($foto["size"] > 500000) {
-            $uploadOk = 0;
-        }
-        
-        // Allow certain file formats
-        if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg"
-        && $imageFileType != "gif" ) {
-            $uploadOk = 0;
-        }
-        
-        // Check if $uploadOk is set to 0 by an error
-        if ($uploadOk == 0) {
-            return null;
-        // if everything is ok, try to upload file
-        } else {
-            if (move_uploaded_file($foto["tmp_name"], $_SERVER['DOCUMENT_ROOT'] . $target_file)) {
-                return $target_file;
-            } else {
-                return null;
+
+    function editData($id, $data) {
+        global $koneksi;
+    
+        $nama_sejarawan = $data['nama_sejarawan'];
+        $foto_sejarawan = $data['foto_sejarawan'];
+        $tanggal_lahir = $data['tanggal_lahir'];
+        $asal = $data['asal'];
+        $jenis_kelamin = $data['jenis_kelamin'];
+        $deskripsi = $data['deskripsi'];
+    
+        // Jika ada foto baru, simpan foto baru dan perbaharui path foto
+        if (!empty($foto_sejarawan)) {
+            $outputfile = "gambar/".generateRandomFileName('foto_', '.jpg');
+            $filehandler = fopen($outputfile, 'wb');
+            fwrite($filehandler, base64_decode($foto_sejarawan));
+            fclose($filehandler);
+    
+            // Hapus foto lama
+            $querySelectFotoLama = "SELECT foto_sejarawan FROM sejarawan WHERE id = '$id'";
+            $resultSelectFotoLama = mysqli_query($koneksi, $querySelectFotoLama);
+            $row = mysqli_fetch_assoc($resultSelectFotoLama);
+            $foto_sejarawan_lama = $row['foto_sejarawan'];
+            if (file_exists($foto_sejarawan_lama)) {
+                unlink($foto_sejarawan_lama);
             }
+    
+            // Update path foto
+            $query = "UPDATE sejarawan SET nama_sejarawan = '$nama_sejarawan', foto_sejarawan = '$outputfile', tanggal_lahir = '$tanggal_lahir', asal = '$asal', jenis_kelamin = '$jenis_kelamin', deskripsi = '$deskripsi' WHERE id = '$id'";
+        } else {
+            // Jika tidak ada foto baru, gunakan data lain untuk update
+            $query = "UPDATE sejarawan SET nama_sejarawan = '$nama_sejarawan', tanggal_lahir = '$tanggal_lahir', asal = '$asal', jenis_kelamin = '$jenis_kelamin', deskripsi = '$deskripsi' WHERE id = '$id'";
         }
+    
+        if(mysqli_query($koneksi, $query)) {
+            $response = [
+                'sukses' => true,
+                'status' => 200,
+                'pesan' => 'Data sejarawan berhasil diperbarui'
+            ];
+        } else {
+            $response = [
+                'sukses' => false,
+                'status' => 500,
+                'pesan' => 'Gagal memperbarui data sejarawan: ' . mysqli_error($koneksi)
+            ];
+        }
+    
+        return json_encode($response);
     }
-
-
-// Fungsi update data sejarawan
-function updateDataSejarawan($id, $data) {
-    global $koneksi;
-
-    $nama_sejarawan = $data['nama_sejarawan'];
-    $foto_sejarawan = uploadFoto($data['foto_sejarawan']);
-    $tanggal_lahir = $data['tanggal_lahir'];
-    $asal = $data['asal'];
-    $jenis_kelamin = $data['jenis_kelamin'];
-    $deskripsi = $data['deskripsi'];
-
-    $query = "UPDATE sejarawan SET nama_sejarawan='$nama_sejarawan', foto_sejarawan='$foto_sejarawan', tanggal_lahir='$tanggal_lahir', asal='$asal', jenis_kelamin='$jenis_kelamin', deskripsi='$deskripsi' WHERE id=$id";
-
-    if(mysqli_query($koneksi, $query)) {
-        $response = [
-            'sukses' => true,
-            'status' => 200,
-            'pesan' => 'Data sejarawan berhasil diperbarui'
-        ];
-    } else {
-        $response = [
-            'sukses' => false,
-            'status' => 500,
-            'pesan' => 'Gagal memperbarui data sejarawan: ' . mysqli_error($koneksi)
-        ];
-    }
-
-    return json_encode($response);
-}
+    
 
 // Fungsi delete data sejarawan
 function hapusDataSejarawan($id) {
@@ -117,6 +111,15 @@ function hapusDataSejarawan($id) {
 
     $query = "DELETE FROM sejarawan WHERE id=$id";
 
+     // Hapus foto lama
+     $querySelectFotoLama = "SELECT foto_sejarawan FROM sejarawan WHERE id = '$id'";
+     $resultSelectFotoLama = mysqli_query($koneksi, $querySelectFotoLama);
+     $row = mysqli_fetch_assoc($resultSelectFotoLama);
+     $foto_sejarawan_lama = $row['foto_sejarawan'];
+     if (file_exists($foto_sejarawan_lama)) {
+         unlink($foto_sejarawan_lama);
+     }
+     
     if(mysqli_query($koneksi, $query)) {
         $response = [
             'sukses' => true,
@@ -152,24 +155,24 @@ switch ($method) {
             switch ($action) {
                 case 'tambah':
                     // Tambah data
-                    echo tambahData($_POST);
+                    echo tambahDataSejarawan($_POST);
                     break;
                 case 'edit':
                     // Cek jika parameter id_pegawai ada
-                    if(isset($_POST['id_pegawai'])) {
-                        $id = $_POST['id_pegawai'];
+                    if(isset($_POST['id'])) {
+                        $id = $_POST['id'];
                         // Edit data
                         echo editData($id, $_POST);
                     } else {
-                        echo json_encode(['sukses' => false, 'status' => 400, 'pesan' => 'ID pegawai tidak ditemukan']);
+                        echo json_encode(['sukses' => false, 'status' => 400, 'pesan' => 'ID tidak ditemukan']);
                     }
                     break;
                 case 'hapus':
-                    // Cek jika parameter id_pegawai ada
-                    if(isset($_POST['id_pegawai'])) {
-                        $id = $_POST['id_pegawai'];
+                    // Cek jika parameter id ada
+                    if(isset($_POST['id'])) {
+                        $id = $_POST['id'];
                         // Hapus data
-                        echo hapusData($id);
+                        echo hapusDataSejarawan($id);
                     } else {
                         echo json_encode(['sukses' => false, 'status' => 400, 'pesan' => 'ID pegawai tidak ditemukan']);
                     }

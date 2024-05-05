@@ -82,7 +82,7 @@ function tambahUser($koneksi, $nama_user, $alamat_user, $nohp_user, $username, $
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
     $query = "INSERT INTO tb_user (nama_user, alamat_user, nohp_user, username, password) VALUES ('$nama_user', '$alamat_user', '$nohp_user', '$username', '$hashed_password')";
     $result = mysqli_query($koneksi, $query);
-
+    
     if ($result) {
         $response = [
             'sukses' => true,
